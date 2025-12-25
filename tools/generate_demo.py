@@ -9,6 +9,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT_DIR, 'src'))
 
 import cv2
+import imageio
 from avocadet import AvocadoDetector, ColorAnalyzer, SizeEstimator, Visualizer
 from avocadet.analyzer import AvocadoAnalysis
 
@@ -41,14 +42,13 @@ height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 size_estimator.update_frame_size(width, height)
 
-# Output writer
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-out = cv2.VideoWriter(OUTPUT_VIDEO, fourcc, fps, (width, height))
-
+# Use imageio to write video (better compatibility with ffmpeg)
 print(f"Processing {INPUT_VIDEO} -> {OUTPUT_VIDEO}...")
+writer = imageio.get_writer(OUTPUT_VIDEO, fps=fps, codec='libx264', quality=8)
 
-frames = []
+frames_for_gif = []
 frame_count = 0
+
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -70,37 +70,35 @@ while cap.isOpened():
             relative_size=rel_size
         ))
     
-    # Draw overlays using the correct API
+    # Draw overlays
     frame = visualizer.draw(frame, detections, analyses, len(detections), fps)
     
-    out.write(frame)
+    # Convert BGR to RGB for imageio
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    # Write to video
+    writer.append_data(rgb_frame)
     
     # Store frames for GIF generation (subsample to reduce size)
     if frame_count % 3 == 0:  # Take every 3rd frame
-        # Convert BGR to RGB for imageio
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # Resize for GIF to keep size down
         h, w = frame.shape[:2]
         new_w = 480
         new_h = int(h * (new_w / w))
-        rgb_frame = cv2.resize(rgb_frame, (new_w, new_h))
-        frames.append(rgb_frame)
+        small_frame = cv2.resize(rgb_frame, (new_w, new_h))
+        frames_for_gif.append(small_frame)
         
     frame_count += 1
     if frame_count % 10 == 0:
         print(f"Processed {frame_count} frames...")
 
 cap.release()
-out.release()
+writer.close()
 print(f"Video saved to {OUTPUT_VIDEO}")
 
 # Generate GIF
-try:
-    import imageio
-    print(f"Generating GIF from {len(frames)} frames...")
-    imageio.mimsave(OUTPUT_GIF, frames, fps=10, loop=0)
-    print(f"GIF saved to {OUTPUT_GIF}")
-except ImportError:
-    print("imageio not installed, skipping GIF generation. Install with: pip install imageio")
+print(f"Generating GIF from {len(frames_for_gif)} frames...")
+imageio.mimsave(OUTPUT_GIF, frames_for_gif, fps=10, loop=0)
+print(f"GIF saved to {OUTPUT_GIF}")
 
 print("Done!")
