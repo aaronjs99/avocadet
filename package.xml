@@ -5,32 +5,46 @@
   <version>1.0.0</version>
   <description>
     Real-time avocado detection, counting, and ripeness analysis for ROS2.
-    Combines YOLOv8 object detection with color-based segmentation.
+    
+    This package provides computer vision capabilities for agricultural robotics,
+    combining YOLOv8 object detection with color-based segmentation for robust
+    fruit identification and ripeness classification.
   </description>
+  
   <maintainer email="aaronjs99@github.com">Aaron JS</maintainer>
+  <author email="aaronjs99@github.com">Aaron JS</author>
   <license>MIT</license>
-
+  
+  <url type="website">https://github.com/aaronjs99/avocadet</url>
   <url type="repository">https://github.com/aaronjs99/avocadet</url>
+  <url type="bugtracker">https://github.com/aaronjs99/avocadet/issues</url>
 
+  <!-- Build Tools -->
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
+  <!-- ROS2 Dependencies -->
   <depend>rclpy</depend>
-  <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
 
+  <!-- Runtime Dependencies -->
   <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
 
+  <!-- Message Generation -->
   <member_of_group>rosidl_interface_packages</member_of_group>
 
+  <!-- Testing -->
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
