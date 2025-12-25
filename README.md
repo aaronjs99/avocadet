@@ -8,7 +8,7 @@ Real-time avocado detection, counting, and ripeness analysis from video feeds.
 
 ## Demo
 
-https://github.com/user-attachments/assets/demo/video.mp4
+https://github.com/aaronjs99/avocadet/raw/master/demo/video.mp4
 
 ## Features
 
