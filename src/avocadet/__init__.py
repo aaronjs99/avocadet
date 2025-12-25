@@ -1,5 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-Avocadet - Real-time avocado detection from livestream video feeds.
+Avocadet - Real-time Avocado Detection Package
+
+A computer vision system for real-time avocado detection, counting,
+and ripeness analysis from video streams.
+
+Authors:
+    Aaron John Sabu
+    Sunwoong Choi
+    Sriram Narasimhan
+
+License:
+    MIT License
 """
 
 from .detector import AvocadoDetector
@@ -8,10 +20,13 @@ from .stream import LivestreamProcessor
 from .visualizer import Visualizer
 from .segmenter import ColorBasedSegmenter, SAMSegmenter
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
+__author__ = "Aaron John Sabu, Sunwoong Choi, Sriram Narasimhan"
+__license__ = "MIT"
+
 __all__ = [
     "AvocadoDetector",
-    "ColorAnalyzer", 
+    "ColorAnalyzer",
     "SizeEstimator",
     "LivestreamProcessor",
     "Visualizer",

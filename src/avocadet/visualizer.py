@@ -1,5 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-Visualization overlay for avocado detection results.
+Visualization Module
+
+This module provides visualization utilities for rendering detection
+results, bounding boxes, and statistics overlays.
+
+Authors:
+    Aaron John Sabu
+    Sunwoong Choi
+    Sriram Narasimhan
+
+License:
+    MIT License
 """
 
 from typing import List, Tuple

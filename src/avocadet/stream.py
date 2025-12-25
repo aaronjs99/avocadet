@@ -1,5 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-Livestream processor for continuous avocado detection.
+Livestream Processor Module
+
+This module provides the main video stream processing pipeline for
+real-time avocado detection from various video sources.
+
+Authors:
+    Aaron John Sabu
+    Sunwoong Choi
+    Sriram Narasimhan
+
+License:
+    MIT License
 """
 
 from dataclasses import dataclass

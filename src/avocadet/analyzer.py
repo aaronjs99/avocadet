@@ -1,5 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-Color and size analysis for detected avocados.
+Color and Size Analysis Module
+
+This module provides color analysis and size estimation for detected
+avocados, including ripeness classification.
+
+Authors:
+    Aaron John Sabu
+    Sunwoong Choi
+    Sriram Narasimhan
+
+License:
+    MIT License
 """
 
 from dataclasses import dataclass
