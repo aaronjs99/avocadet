@@ -1,17 +1,23 @@
-# Avocadet - ROS2 Package
+# Avocadet - ROS Package
 
-Real-time avocado detection, counting, and ripeness analysis for ROS2.
+Real-time avocado detection, counting, and ripeness analysis for ROS.
 
-![ROS2](https://img.shields.io/badge/ROS2-Humble%20%7C%20Iron%20%7C%20Jazzy-blue.svg)
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![ROS](https://img.shields.io/badge/ROS-Noetic-blue.svg)
+![Python](https://img.shields.io/badge/Python-2.7%20%7C%203.8+-blue.svg)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-> **Note**: This is the ROS2 branch. For ROS1 (Noetic), see the [master branch](https://github.com/aaronjs99/avocadet/tree/master).
+
+> **Note**: This is the ROS1 branch (master). For ROS2 (Humble/Iron/Jazzy), see the [ros2 branch](https://github.com/aaronjs99/avocadet/tree/ros2).
+
+<p align="center">
+  <img src="demo/demo.gif" alt="Avocadet Demo" width="800">
+</p>
+
 
 ## Overview
 
-Avocadet is a ROS2 package for automated avocado detection in agricultural robotics applications. The system combines deep learning-based object detection (YOLOv8) with classical computer vision techniques for:
+Avocadet is a ROS package for automated avocado detection in agricultural robotics applications. The system combines deep learning-based object detection (YOLOv8) with classical computer vision techniques for:
 
 - Real-time fruit detection and localization
 - Ripeness classification (unripe, nearly ripe, ripe, overripe)
@@ -22,7 +28,7 @@ Avocadet is a ROS2 package for automated avocado detection in agricultural robot
 
 ### Prerequisites
 
-- ROS2 Humble / Iron / Jazzy
+- ROS Noetic (Ubuntu 20.04)
 - Python 3.8+
 - OpenCV 4.x
 - CUDA (optional, for GPU acceleration)
@@ -35,7 +41,7 @@ mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
 
 # Clone the package
-git clone -b ros2 https://github.com/aaronjs99/avocadet.git
+git clone https://github.com/aaronjs99/avocadet.git
 
 # Install Python dependencies
 cd avocadet
@@ -43,8 +49,8 @@ pip3 install ultralytics opencv-python numpy
 
 # Build the workspace
 cd ~/catkin_ws
-colcon build --packages-select avocadet --symlink-install
-source install/setup.bash
+catkin_make
+source devel/setup.bash
 ```
 
 ## Usage
@@ -53,13 +59,13 @@ source install/setup.bash
 
 ```bash
 # Launch detector (subscribes to /camera/image_raw)
-ros2 launch avocadet detector.launch.py
+roslaunch avocadet detector.launch
 
 # With custom camera topic
-ros2 launch avocadet detector.launch.py image_topic:=/camera/color/image_raw
+roslaunch avocadet detector.launch image_topic:=/camera/color/image_raw
 
 # With custom model and confidence
-ros2 launch avocadet detector.launch.py \
+roslaunch avocadet detector.launch \
     model_path:=/path/to/model.pt \
     confidence:=0.6 \
     mode:=yolo
@@ -69,15 +75,13 @@ ros2 launch avocadet detector.launch.py \
 
 ```bash
 # Terminal 1: Launch Gazebo simulation
-ros2 launch your_robot_package gazebo.launch.py
+roslaunch your_robot_package gazebo.launch
 
-# Terminal 2: Launch avocadet with sim time
-ros2 launch avocadet detector.launch.py \
-    image_topic:=/robot/camera/image_raw \
-    use_sim_time:=true
+# Terminal 2: Launch avocadet
+roslaunch avocadet detector.launch image_topic:=/robot/camera/image_raw
 ```
 
-## ROS2 Interface
+## ROS Interface
 
 ### Subscribed Topics
 
@@ -96,12 +100,11 @@ ros2 launch avocadet detector.launch.py \
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `image_topic` | string | `/camera/image_raw` | Camera topic to subscribe |
-| `model_path` | string | `""` | Custom YOLO model path |
-| `confidence_threshold` | float | `0.5` | Detection confidence [0.0-1.0] |
-| `mode` | string | `hybrid` | Detection mode |
-| `publish_annotated` | bool | `true` | Publish annotated images |
-| `use_sim_time` | bool | `false` | Use Gazebo simulation time |
+| `~image_topic` | string | `/camera/image_raw` | Camera topic to subscribe |
+| `~model_path` | string | `""` | Custom YOLO model path |
+| `~confidence_threshold` | float | `0.5` | Detection confidence [0.0-1.0] |
+| `~mode` | string | `hybrid` | Detection mode |
+| `~publish_annotated` | bool | `true` | Publish annotated images |
 
 ### Detection Modes
 
@@ -118,7 +121,7 @@ Detection results are published as JSON:
 ```json
 {
   "header": {
-    "stamp": {"sec": 1703520000, "nanosec": 123456789},
+    "stamp": {"secs": 1703520000, "nsecs": 123456789},
     "frame_id": "camera_optical_frame"
   },
   "count": 3,
@@ -139,28 +142,25 @@ Detection results are published as JSON:
 
 ```
 avocadet/
-├── package.xml             # ROS2 package manifest
+├── package.xml             # ROS package manifest
 ├── CMakeLists.txt          # Build configuration
+├── setup.py                # Python setup for catkin
 ├── msg/                    # Custom message definitions
 │   ├── BoundingBox.msg
 │   ├── Color.msg
 │   ├── AvocadoDetection.msg
 │   └── AvocadoDetectionArray.msg
 ├── launch/
-│   └── detector.launch.py  # Launch configuration
+│   └── detector.launch     # Launch configuration
 ├── config/                 # Parameter files
-├── avocadet_ros/           # ROS2 nodes
-│   ├── __init__.py
+├── scripts/
 │   └── detector_node.py    # Main detector node
 ├── src/avocadet/           # Core detection library
 │   ├── detector.py         # YOLO + segmentation
 │   ├── segmenter.py        # Color-based segmentation
 │   ├── analyzer.py         # Ripeness & size analysis
-│   ├── stream.py           # Video stream processing
 │   └── visualizer.py       # Visualization utilities
 ├── tools/                  # Training utilities
-│   ├── annotate.py         # Dataset annotation
-│   └── train.py            # Model training
 └── tests/                  # Unit tests
 ```
 
@@ -176,7 +176,7 @@ python3 tools/annotate.py --video input.mp4 --every 20
 python3 tools/train.py --dataset datasets/custom --epochs 50
 
 # 3. Use trained model
-ros2 launch avocadet detector.launch.py model_path:=/path/to/best.pt mode:=yolo
+roslaunch avocadet detector.launch model_path:=/path/to/best.pt mode:=yolo
 ```
 
 ## Authors
@@ -191,5 +191,6 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## See Also
 
-- [ROS1 Version (master branch)](https://github.com/aaronjs99/avocadet/tree/master)
+- [ROS2 Version (ros2 branch)](https://github.com/aaronjs99/avocadet/tree/ros2)
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
+
