@@ -1,5 +1,6 @@
 # Demo
 
-Place your demo video here as `video.mp4`.
+This directory contains demo assets:
 
-This video will be displayed in the README.
+- `demo.mp4` - Full demo video with detection overlays
+- `demo.gif` - Compressed GIF for README embedding

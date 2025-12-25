@@ -47,7 +47,7 @@ datasets/
 # Screenshots and video outputs
 avocadet_screenshot_*.png
 *.mp4
-!demo/video.mp4
+!demo/demo.mp4
 *.avi
 *.mkv
 
