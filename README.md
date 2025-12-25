@@ -7,7 +7,13 @@ Real-time avocado detection, counting, and ripeness analysis for ROS.
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
+
 > **Note**: This is the ROS1 branch (master). For ROS2 (Humble/Iron/Jazzy), see the [ros2 branch](https://github.com/aaronjs99/avocadet/tree/ros2).
+
+<p align="center">
+  <img src="demo/demo.gif" alt="Avocadet Demo" width="800">
+</p>
+
 
 ## Overview
 
