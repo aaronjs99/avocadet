@@ -31,14 +31,13 @@ htmlcov/
 .tox/
 .nox/
 
-# YOLO / Ultralytics training outputs
+# YOLO / Ultralytics
 runs/
-
-# Model weights (except our trained model)
 *.pt
-!models/avocado_yolov8.pt
+*.onnx
+*.engine
 
-# Data files (user-specific)
+# Data and datasets
 data/
 datasets/
 *.csv
@@ -47,7 +46,9 @@ datasets/
 
 # Screenshots and video outputs
 avocadet_screenshot_*.png
-output_*.mp4
+*.mp4
+*.avi
+*.mkv
 
 # OS files
 .DS_Store

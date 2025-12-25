@@ -36,7 +36,7 @@ python run.py --source path/to/video.mp4
 python run.py --source rtsp://camera-ip:554/stream
 
 # With custom trained model
-python run.py --model models/avocado_yolov8.pt --source video.mp4
+python run.py --model path/to/model.pt --source video.mp4
 ```
 
 ## Detection Modes
@@ -51,17 +51,17 @@ python run.py --model models/avocado_yolov8.pt --source video.mp4
 
 1. **Annotate frames from your video:**
    ```bash
-   python annotate.py --video your_video.mp4 --every 20
+   python tools/annotate.py --video your_video.mp4 --every 20
    ```
 
 2. **Train YOLOv8 on your annotations:**
    ```bash
-   python train.py --skip-download --dataset datasets/avocado_custom --epochs 50
+   python tools/train.py --dataset datasets/avocado_custom --epochs 50
    ```
 
 3. **Run with your trained model:**
    ```bash
-   python run.py --model models/avocado_yolov8.pt --mode yolo
+   python run.py --model path/to/model.pt --mode yolo
    ```
 
 ## Keyboard Controls
@@ -78,15 +78,15 @@ python run.py --model models/avocado_yolov8.pt --source video.mp4
 ```
 avocadet/
 ├── run.py              # Main entry point
-├── train.py            # Model training script
-├── annotate.py         # Frame annotation tool
+├── tools/
+│   ├── train.py        # Model training script
+│   └── annotate.py     # Frame annotation tool
 ├── src/avocadet/
 │   ├── detector.py     # YOLOv8 + segmentation detector
 │   ├── analyzer.py     # Color and size analysis
 │   ├── segmenter.py    # Color-based segmentation
 │   ├── stream.py       # Video stream processor
 │   └── visualizer.py   # UI overlay and display
-├── models/             # Model weights
 └── tests/              # Unit tests
 ```
 
@@ -101,8 +101,8 @@ processor.run()
 
 # With custom settings
 processor = LivestreamProcessor(
-    source=0,                              # Webcam
-    model_path="models/avocado_yolov8.pt",
+    source=0,
+    model_path="path/to/model.pt",
     confidence_threshold=0.5,
     mode="hybrid"
 )
