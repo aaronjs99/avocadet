@@ -1,0 +1,57 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# YOLO / Ultralytics training outputs
+runs/
+
+# Model weights (except our trained model)
+*.pt
+!models/avocado_yolov8.pt
+
+# Data files (user-specific)
+data/
+datasets/
+*.csv
+*.json
+!pyproject.toml
+
+# Screenshots and video outputs
+avocadet_screenshot_*.png
+output_*.mp4
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
