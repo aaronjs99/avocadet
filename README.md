@@ -6,6 +6,10 @@ Real-time avocado detection, counting, and ripeness analysis from video feeds.
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple.svg)
 ![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-green.svg)
 
+## Demo
+
+https://github.com/user-attachments/assets/demo/video.mp4
+
 ## Features
 
 - **Object Detection** - YOLOv8-based detection with custom training support
@@ -73,6 +77,11 @@ python run.py --model path/to/model.pt --source video.mp4
 | `s` | Save screenshot |
 | `f` | Toggle fullscreen |
 
+## Documentation
+
+- [Architecture Overview](docs/architecture.md) - Detailed codebase explanation
+- [API Reference](docs/api.md) - Complete API documentation
+
 ## Package Structure
 
 ```
@@ -87,6 +96,7 @@ avocadet/
 │   ├── segmenter.py    # Color-based segmentation
 │   ├── stream.py       # Video stream processor
 │   └── visualizer.py   # UI overlay and display
+├── docs/               # Documentation
 └── tests/              # Unit tests
 ```
 
