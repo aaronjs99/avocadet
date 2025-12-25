@@ -4,40 +4,36 @@ This document provides a detailed explanation of the Avocadet codebase architect
 
 ## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         run.py                                  │
-│                    (Entry Point / CLI)                          │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   LivestreamProcessor                           │
-│                      (stream.py)                                │
-│  - Manages video capture from various sources                   │
-│  - Orchestrates detection, analysis, and visualization          │
-│  - Handles user input and interactive controls                  │
-└───────┬─────────────────┬─────────────────┬─────────────────────┘
-        │                 │                 │
-        ▼                 ▼                 ▼
-┌───────────────┐ ┌───────────────┐ ┌───────────────────────────┐
-│AvocadoDetector│ │ ColorAnalyzer │ │      Visualizer           │
-│ (detector.py) │ │ SizeEstimator │ │    (visualizer.py)        │
-│               │ │ (analyzer.py) │ │                           │
-│ - YOLO detect │ │ - HSV analysis│ │ - Draws bounding boxes    │
-│ - Segmentation│ │ - Ripeness    │ │ - Renders stats panel     │
-│ - Hybrid mode │ │ - Size calc   │ │ - Color swatches          │
-└───────┬───────┘ └───────────────┘ └───────────────────────────┘
-        │
-        ▼
-┌───────────────────────┐
-│  ColorBasedSegmenter  │
-│   (segmenter.py)      │
-│                       │
-│ - HSV color filtering │
-│ - Contour detection   │
-│ - Shape analysis      │
-└───────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Entry["Entry Point"]
+        run["run.py<br/>(CLI)"]
+    end
+    
+    subgraph Core["Core Processing"]
+        stream["LivestreamProcessor<br/>(stream.py)"]
+    end
+    
+    subgraph Detection["Detection"]
+        detector["AvocadoDetector<br/>(detector.py)"]
+        segmenter["ColorBasedSegmenter<br/>(segmenter.py)"]
+    end
+    
+    subgraph Analysis["Analysis"]
+        color["ColorAnalyzer"]
+        size["SizeEstimator"]
+    end
+    
+    subgraph Output["Output"]
+        viz["Visualizer<br/>(visualizer.py)"]
+    end
+    
+    run --> stream
+    stream --> detector
+    stream --> color
+    stream --> size
+    stream --> viz
+    detector --> segmenter
 ```
 
 ## Component Details
@@ -83,15 +79,15 @@ def __init__(
 - Handles keyboard input (quit, pause, screenshot, fullscreen)
 
 **Processing Loop:**
-```
-For each frame:
-    1. Read trackbar values → Update detector parameters
-    2. Run detection → Get bounding boxes
-    3. For each detection:
-        - Analyze color → Determine ripeness
-        - Estimate size → Categorize as small/medium/large
-    4. Visualize results → Draw overlays
-    5. Display frame → Handle user input
+
+```mermaid
+flowchart LR
+    A[Read Frame] --> B[Update Parameters]
+    B --> C[Detect Objects]
+    C --> D[Analyze Color/Size]
+    D --> E[Visualize]
+    E --> F[Display]
+    F --> A
 ```
 
 ---
@@ -99,8 +95,6 @@ For each frame:
 ### 3. Avocado Detector (`detector.py`)
 
 Handles object detection using multiple strategies.
-
-**Class: `AvocadoDetector`**
 
 **Detection Modes:**
 
@@ -110,22 +104,15 @@ Handles object detection using multiple strategies.
 | `segment` | Color-based segmentation only | Fast, no model needed |
 | `hybrid` | Combines both methods | Default, best coverage |
 
-**YOLO Detection Flow:**
-```python
-1. Load YOLOv8 model (default: yolov8n.pt)
-2. Run inference on frame
-3. Filter detections by confidence
-4. Filter by class (fruit-like objects or 'avocado')
-5. Return list of Detection objects
-```
+**Hybrid Mode Flow:**
 
-**Hybrid Mode:**
-```python
-1. Run segmentation → Get color-based detections
-2. Run YOLO → Get model-based detections
-3. Merge results using IoU overlap detection
-4. Remove duplicates (IoU > 0.5)
-5. Return combined detections
+```mermaid
+flowchart LR
+    Frame --> Segmentation
+    Frame --> YOLO
+    Segmentation --> Merge
+    YOLO --> Merge
+    Merge --> |"Remove duplicates<br/>(IoU > 0.5)"| Results
 ```
 
 **Data Class: `Detection`**
@@ -143,8 +130,6 @@ class Detection:
 
 Detects avocados based on color and shape characteristics.
 
-**Class: `ColorBasedSegmenter`**
-
 **HSV Color Range:**
 ```python
 HSV_LOWER = [25, 40, 40]   # Dark yellow-green
@@ -152,17 +137,18 @@ HSV_UPPER = [85, 200, 180] # Darker greens (excludes bright leaves)
 ```
 
 **Detection Pipeline:**
-```
-1. Convert frame to HSV color space
-2. Create binary mask using color range
-3. Apply morphological operations (close + open)
-4. Find contours in the mask
-5. For each contour:
-   - Filter by area (min: 800, max: 30000)
-   - Calculate circularity (min: 0.45)
-   - Check aspect ratio (0.5 - 2.0)
-   - Check convexity (min: 0.7)
-6. Return valid contours as SegmentedObject
+
+```mermaid
+flowchart TD
+    A[Input Frame] --> B[Convert to HSV]
+    B --> C[Apply Color Mask]
+    C --> D[Morphological Ops]
+    D --> E[Find Contours]
+    E --> F{Filter by Area}
+    F --> G{Filter by Circularity}
+    G --> H{Filter by Aspect Ratio}
+    H --> I{Filter by Convexity}
+    I --> J[Valid Detections]
 ```
 
 **Why These Filters?**
@@ -177,8 +163,6 @@ HSV_UPPER = [85, 200, 180] # Darker greens (excludes bright leaves)
 
 Analyzes detected regions to determine ripeness and dominant color.
 
-**Class: `ColorAnalyzer`**
-
 **Ripeness Classification:**
 
 | Ripeness | Hue Range | Description |
@@ -189,15 +173,11 @@ Analyzes detected regions to determine ripeness and dominant color.
 | `overripe` | 0-15, 160+ | Dark brown/black |
 
 **Algorithm:**
-```python
 1. Extract ROI (region of interest) from bounding box
 2. Convert to HSV color space
 3. Apply K-means clustering (k=3) to find dominant colors
 4. Select the largest cluster as dominant color
 5. Map hue value to ripeness category
-```
-
-**Class: `SizeEstimator`**
 
 **Size Categories:**
 ```python
@@ -205,24 +185,17 @@ SMALL_THRESHOLD = 0.02   # < 2% of frame area
 LARGE_THRESHOLD = 0.08   # > 8% of frame area
 ```
 
-Sizes are relative to frame dimensions, not absolute measurements.
-
 ---
 
 ### 6. Visualizer (`visualizer.py`)
 
 Renders detection results and statistics overlay.
 
-**Class: `Visualizer`**
-
 **Visual Elements:**
 1. **Bounding Boxes**: Color-coded by ripeness
 2. **Labels**: Detection ID, ripeness, size, confidence
 3. **Color Swatches**: Shows dominant color of each detection
-4. **Stats Panel**: Semi-transparent overlay with:
-   - Total avocado count
-   - Current FPS
-   - Ripeness breakdown
+4. **Stats Panel**: Semi-transparent overlay with count, FPS, breakdown
 
 **Color Scheme:**
 ```python
@@ -249,12 +222,6 @@ Interactive tool for creating training data from video frames.
 4. Save YOLO-format labels to `datasets/avocado_custom/labels/train/`
 5. Generate `data.yaml` configuration file
 
-**YOLO Label Format:**
-```
-<class_id> <center_x> <center_y> <width> <height>
-```
-All values normalized to 0-1 range.
-
 ### Training Script (`tools/train.py`)
 
 Fine-tunes YOLOv8 on custom dataset.
@@ -265,44 +232,20 @@ Fine-tunes YOLOv8 on custom dataset.
 - `--imgsz`: Image size (default: 640)
 - `--device`: GPU ID or "cpu"
 
-**Output:**
-- Best model saved to specified output path
-- Training metrics and plots in `runs/train/`
-
 ---
 
 ## Data Flow Summary
 
-```
-Video Frame
-    │
-    ▼
-┌─────────────────────┐
-│  AvocadoDetector    │
-│  detect(frame)      │
-└─────────┬───────────┘
-          │
-          ▼
-    List[Detection]
-          │
-          ▼
-┌─────────────────────┐     ┌─────────────────────┐
-│   ColorAnalyzer     │     │   SizeEstimator     │
-│   analyze(roi)      │     │   estimate(bbox)    │
-└─────────┬───────────┘     └─────────┬───────────┘
-          │                           │
-          ▼                           ▼
-    AvocadoAnalysis ◄─────────────────┘
-    (color, ripeness, size)
-          │
-          ▼
-┌─────────────────────┐
-│     Visualizer      │
-│   draw(frame, ...)  │
-└─────────┬───────────┘
-          │
-          ▼
-    Annotated Frame
+```mermaid
+flowchart TD
+    A[Video Frame] --> B[AvocadoDetector]
+    B --> C["List[Detection]"]
+    C --> D[ColorAnalyzer]
+    C --> E[SizeEstimator]
+    D --> F[AvocadoAnalysis]
+    E --> F
+    F --> G[Visualizer]
+    G --> H[Annotated Frame]
 ```
 
 ---
