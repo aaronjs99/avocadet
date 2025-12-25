@@ -173,6 +173,12 @@ python3 tools/train.py --dataset datasets/custom --epochs 50
 roslaunch avocadet detector.launch model_path:=/path/to/best.pt mode:=yolo
 ```
 
+## Authors
+
+- Aaron John Sabu
+- Sunwoong Choi
+- Sriram Narasimhan
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
@@ -181,3 +187,4 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 - [ROS2 Version (ros2 branch)](https://github.com/aaronjs99/avocadet/tree/ros2)
 - [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
+
