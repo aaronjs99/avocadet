@@ -1,7 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-SAM (Segment Anything Model) based segmentation for improved avocado detection.
+Segmentation Module
 
-Uses color filtering + SAM for zero-shot avocado segmentation.
+This module provides color-based segmentation and optional SAM
+(Segment Anything Model) integration for avocado detection.
+
+Authors:
+    Aaron John Sabu
+    Sunwoong Choi
+    Sriram Narasimhan
+
+License:
+    MIT License
 """
 
 from dataclasses import dataclass

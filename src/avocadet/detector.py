@@ -1,5 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-Avocado detector using YOLOv8 for object detection.
+Avocado Detector Module
+
+This module implements the core detection functionality using YOLOv8
+object detection and/or color-based segmentation.
+
+Authors:
+    Aaron John Sabu
+    Sunwoong Choi
+    Sriram Narasimhan
+
+License:
+    MIT License
 """
 
 from dataclasses import dataclass
