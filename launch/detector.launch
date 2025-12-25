@@ -1,0 +1,28 @@
+<launch>
+  <!-- 
+    Avocadet Detector Launch File
+    
+    Launches the avocado detection node with configurable parameters.
+    
+    Usage:
+      roslaunch avocadet detector.launch
+      roslaunch avocadet detector.launch image_topic:=/camera/color/image_raw
+  -->
+
+  <!-- Arguments -->
+  <arg name="image_topic" default="/camera/image_raw" doc="Input camera image topic"/>
+  <arg name="model_path" default="" doc="Path to custom YOLO model weights"/>
+  <arg name="confidence" default="0.5" doc="Detection confidence threshold [0.0-1.0]"/>
+  <arg name="mode" default="hybrid" doc="Detection mode: yolo, segment, or hybrid"/>
+  <arg name="publish_annotated" default="true" doc="Publish annotated images with bounding boxes"/>
+
+  <!-- Detector Node -->
+  <node pkg="avocadet" type="detector_node.py" name="avocadet_detector" output="screen">
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="model_path" value="$(arg model_path)"/>
+    <param name="confidence_threshold" value="$(arg confidence)"/>
+    <param name="mode" value="$(arg mode)"/>
+    <param name="publish_annotated" value="$(arg publish_annotated)"/>
+  </node>
+
+</launch>
