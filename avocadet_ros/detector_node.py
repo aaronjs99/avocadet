@@ -8,17 +8,15 @@ Subscribes to camera images and publishes avocado detections.
 import sys
 import os
 
-# Add avocadet to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', 'src'))
+# Add src to path for avocadet imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
-import numpy as np
 
-from avocadet_msgs.msg import AvocadoDetection, AvocadoDetectionArray
 from avocadet import AvocadoDetector, ColorAnalyzer, SizeEstimator
 
 
@@ -60,10 +58,11 @@ class AvocadetDetectorNode(Node):
             10
         )
         
-        # Publishers
+        # Publishers - using raw messages since generated msgs may not be available yet
+        from std_msgs.msg import String
         self.detection_pub = self.create_publisher(
-            AvocadoDetectionArray,
-            '/avocadet/detections',
+            String,
+            '/avocadet/detections_json',
             10
         )
         
@@ -79,6 +78,8 @@ class AvocadetDetectorNode(Node):
 
     def image_callback(self, msg: Image):
         """Process incoming image and publish detections."""
+        import json
+        
         try:
             # Convert ROS image to OpenCV
             cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
@@ -90,33 +91,31 @@ class AvocadetDetectorNode(Node):
             # Detect avocados
             detections = self.detector.detect(cv_image)
             
-            # Create detection array message
-            detection_array = AvocadoDetectionArray()
-            detection_array.header = msg.header
-            
+            # Build detection results
+            results = []
             for det in detections:
-                # Analyze each detection
                 color, color_name, ripeness = self.analyzer.analyze(cv_image, det.bbox)
                 size_cat, rel_size = self.size_estimator.estimate(det.bbox)
                 
-                # Create detection message
-                detection_msg = AvocadoDetection()
-                detection_msg.bbox.x = float(det.bbox[0])
-                detection_msg.bbox.y = float(det.bbox[1])
-                detection_msg.bbox.width = float(det.bbox[2] - det.bbox[0])
-                detection_msg.bbox.height = float(det.bbox[3] - det.bbox[1])
-                detection_msg.confidence = det.confidence
-                detection_msg.ripeness = ripeness.value
-                detection_msg.size_category = size_cat.value
-                detection_msg.relative_size = rel_size
-                detection_msg.dominant_color.r = int(color[2])
-                detection_msg.dominant_color.g = int(color[1])
-                detection_msg.dominant_color.b = int(color[0])
-                
-                detection_array.detections.append(detection_msg)
+                results.append({
+                    'bbox': {'x': det.bbox[0], 'y': det.bbox[1], 
+                             'width': det.bbox[2] - det.bbox[0],
+                             'height': det.bbox[3] - det.bbox[1]},
+                    'confidence': float(det.confidence),
+                    'ripeness': ripeness.value,
+                    'size_category': size_cat.value,
+                    'relative_size': float(rel_size),
+                    'color': {'r': int(color[2]), 'g': int(color[1]), 'b': int(color[0])}
+                })
             
-            detection_array.count = len(detections)
-            self.detection_pub.publish(detection_array)
+            # Publish as JSON string
+            from std_msgs.msg import String
+            detection_msg = String()
+            detection_msg.data = json.dumps({
+                'count': len(detections),
+                'detections': results
+            })
+            self.detection_pub.publish(detection_msg)
             
             # Publish annotated image if enabled
             if self.publish_annotated and detections:

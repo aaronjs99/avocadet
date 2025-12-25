@@ -1,166 +1,142 @@
-# Avocadet
+# Avocadet - ROS2 Package
 
-A real-time computer vision system for avocado detection, counting, and ripeness classification from video streams.
+Real-time avocado detection, counting, and ripeness analysis for ROS2.
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![ROS2](https://img.shields.io/badge/ROS2-Humble%2FIron%2FJazzy-blue.svg)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple.svg)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-green.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+
+> **Note**: This is the ROS2 branch. For the standalone Python package, see the [master branch](https://github.com/aaronjs99/avocadet/tree/master).
 
 ## Overview
 
-Avocadet provides an end-to-end pipeline for automated avocado analysis in agricultural settings. The system combines deep learning-based object detection (YOLOv8) with classical computer vision techniques for robust fruit identification, ripeness assessment, and size estimation.
+This ROS2 package provides avocado detection capabilities for robotic systems. It subscribes to camera image topics and publishes detection results including:
 
-![Avocado Detection Demo](demo/demo.gif)
-
-### Key Capabilities
-
-- **Multi-modal Detection**: Hybrid approach combining YOLOv8 object detection with HSV-based color segmentation
-- **Ripeness Classification**: Automated assessment based on color analysis (unripe, nearly ripe, ripe, overripe)
-- **Size Estimation**: Relative size categorization using bounding box area ratios
-- **Real-time Processing**: Optimized for live video streams with interactive parameter tuning
-- **Custom Training**: Built-in annotation and training tools for domain-specific model fine-tuning
+- Bounding boxes
+- Ripeness classification (unripe, nearly_ripe, ripe, overripe)
+- Size estimation (small, medium, large)
+- Confidence scores
+- Dominant color
 
 ## Installation
 
-### Requirements
+### Prerequisites
 
-- Python 3.9+
-- CUDA-compatible GPU (optional, for accelerated inference)
+- ROS2 Humble / Iron / Jazzy
+- Python 3.8+
+- OpenCV
+- cv_bridge
 
-### Setup
+### Build
 
 ```bash
-git clone https://github.com/aaronjs99/avocadet.git
+# Create workspace
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
+# Clone this package
+git clone -b ros2 https://github.com/aaronjs99/avocadet.git
+
+# Install Python dependencies
 cd avocadet
-pip install -e .
+pip install ultralytics opencv-python numpy
+
+# Build
+cd ~/ros2_ws
+colcon build --packages-select avocadet
+source install/setup.bash
 ```
 
 ## Usage
 
-### Command Line Interface
+### Launch Detector
 
 ```bash
-# Process webcam feed
-python run.py --source 0
+# Basic launch (subscribes to /camera/image_raw)
+ros2 launch avocadet detector.launch.py
 
-# Process video file
-python run.py --source path/to/video.mp4
+# With custom camera topic
+ros2 launch avocadet detector.launch.py image_topic:=/camera/color/image_raw
 
-# Process RTSP stream
-python run.py --source rtsp://camera-ip:554/stream
-
-# Use custom-trained model
-python run.py --model path/to/model.pt --mode yolo
+# With custom model
+ros2 launch avocadet detector.launch.py model_path:=/path/to/model.pt mode:=yolo
 ```
 
-### Detection Modes
+### Topics
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `hybrid` | Combines segmentation and YOLO detection | Default; best overall coverage |
-| `yolo` | YOLOv8 detection only | Custom-trained models |
-| `segment` | Color-based segmentation only | Fast inference without GPU |
+| Topic | Type | Description |
+|-------|------|-------------|
+| `/camera/image_raw` | sensor_msgs/Image | Input (subscribe) |
+| `/avocadet/detections_json` | std_msgs/String | Detection results as JSON |
+| `/avocadet/annotated_image` | sensor_msgs/Image | Visualized output |
 
-### Python API
+### Parameters
 
-```python
-from avocadet import LivestreamProcessor
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `image_topic` | `/camera/image_raw` | Camera topic to subscribe |
+| `model_path` | `""` | Custom YOLO model path |
+| `confidence_threshold` | `0.5` | Detection confidence |
+| `mode` | `hybrid` | Detection mode |
+| `publish_annotated` | `true` | Publish annotated images |
 
-processor = LivestreamProcessor(
-    source="video.mp4",
-    model_path="path/to/model.pt",
-    confidence_threshold=0.5,
-    mode="hybrid"
-)
-processor.run()
-```
-
-## Custom Model Training
-
-The package includes tools for creating custom training datasets and fine-tuning YOLOv8 models.
-
-### 1. Annotation
-
-Extract and annotate frames from video:
+## Gazebo Integration
 
 ```bash
-python tools/annotate.py --video input.mp4 --every 20
+# Terminal 1: Launch Gazebo with camera
+ros2 launch your_robot gazebo.launch.py
+
+# Terminal 2: Launch avocadet
+ros2 launch avocadet detector.launch.py image_topic:=/robot/camera/image_raw
 ```
 
-### 2. Training
+## Message Format
 
-Fine-tune YOLOv8 on annotated data:
+Detection results are published as JSON:
 
-```bash
-python tools/train.py --dataset datasets/avocado_custom --epochs 50
+```json
+{
+  "count": 3,
+  "detections": [
+    {
+      "bbox": {"x": 100, "y": 150, "width": 80, "height": 120},
+      "confidence": 0.92,
+      "ripeness": "ripe",
+      "size_category": "medium",
+      "relative_size": 0.05,
+      "color": {"r": 34, "g": 85, "b": 28}
+    }
+  ]
+}
 ```
 
-### 3. Inference
+## Custom Messages
 
-Deploy the trained model:
+This package also defines custom ROS2 messages in `msg/`:
 
-```bash
-python run.py --model path/to/trained_model.pt --mode yolo
-```
+- `BoundingBox.msg`
+- `Color.msg`
+- `AvocadoDetection.msg`
+- `AvocadoDetectionArray.msg`
 
-## Architecture
-
-The system architecture consists of four main components:
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Detector   │────▶│  Analyzer   │────▶│ Visualizer  │────▶│   Output    │
-│  (YOLO +    │     │  (Color +   │     │  (Overlay   │     │  (Display/  │
-│  Segment)   │     │   Size)     │     │   Render)   │     │   Export)   │
-└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
-```
-
-For detailed architecture documentation, see [docs/architecture.md](docs/architecture.md).
-
-## Project Structure
+## Package Structure
 
 ```
 avocadet/
-├── run.py                  # CLI entry point
-├── src/avocadet/
-│   ├── detector.py         # Object detection (YOLO + segmentation)
-│   ├── segmenter.py        # Color-based segmentation
-│   ├── analyzer.py         # Ripeness and size analysis
-│   ├── stream.py           # Video stream processing
-│   └── visualizer.py       # Result visualization
-├── tools/
-│   ├── annotate.py         # Dataset annotation tool
-│   └── train.py            # Model training script
-├── docs/
-│   ├── architecture.md     # System architecture
-│   └── api.md              # API reference
-└── tests/                  # Unit tests
-```
-
-## Documentation
-
-- [Architecture Overview](docs/architecture.md) - Detailed system design and component descriptions
-- [API Reference](docs/api.md) - Complete API documentation
-
-## Citation
-
-If you use this software in your research, please cite:
-
-```bibtex
-@software{avocadet2024,
-  author = {Aaron JS},
-  title = {Avocadet: Real-time Avocado Detection and Analysis},
-  year = {2024},
-  url = {https://github.com/aaronjs99/avocadet}
-}
+├── package.xml           # ROS2 package manifest
+├── CMakeLists.txt        # Build configuration
+├── msg/                  # Custom message definitions
+├── launch/               # Launch files
+├── config/               # Configuration files
+├── avocadet_ros/         # ROS2 nodes
+│   └── detector_node.py
+└── src/avocadet/         # Core detection library
+    ├── detector.py
+    ├── analyzer.py
+    ├── segmenter.py
+    └── visualizer.py
 ```
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) for object detection
-- [OpenCV](https://opencv.org/) for image processing
+MIT

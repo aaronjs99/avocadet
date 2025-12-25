@@ -1,14 +1,20 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>avocadet_ros</name>
+  <name>avocadet</name>
   <version>1.0.0</version>
-  <description>ROS2 wrapper for Avocadet avocado detection system</description>
+  <description>
+    Real-time avocado detection, counting, and ripeness analysis for ROS2.
+    Combines YOLOv8 object detection with color-based segmentation.
+  </description>
   <maintainer email="aaronjs99@github.com">Aaron JS</maintainer>
   <license>MIT</license>
 
+  <url type="repository">https://github.com/aaronjs99/avocadet</url>
+
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
@@ -16,10 +22,12 @@
   <depend>geometry_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
-  <depend>avocadet_msgs</depend>
 
+  <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

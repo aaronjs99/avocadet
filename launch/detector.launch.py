@@ -1,7 +1,5 @@
 """
 Avocadet ROS2 Launch File
-
-Launches the avocado detection node.
 """
 
 from launch import LaunchDescription
@@ -36,7 +34,7 @@ def generate_launch_description():
 
         # Detector node
         Node(
-            package='avocadet_ros',
+            package='avocadet',
             executable='detector_node.py',
             name='avocadet_detector',
             parameters=[{
