@@ -179,18 +179,11 @@ python3 tools/train.py --dataset datasets/custom --epochs 50
 ros2 launch avocadet detector.launch.py model_path:=/path/to/best.pt mode:=yolo
 ```
 
-## Citation
+## Authors
 
-If you use this package in your research, please cite:
-
-```bibtex
-@software{avocadet2024,
-  author = {Aaron JS},
-  title = {Avocadet: Real-time Avocado Detection for ROS2},
-  year = {2024},
-  url = {https://github.com/aaronjs99/avocadet}
-}
-```
+- Aaron John Sabu
+- Sunwoong Choi
+- Sriram Narasimhan
 
 ## License
 
