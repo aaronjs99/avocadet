@@ -15,6 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+## Python setup - must come before generate_messages()
+catkin_python_setup()
+
 ## ============================================================================
 ## Message Generation
 ## ============================================================================
@@ -65,9 +68,6 @@ catkin_install_python(PROGRAMS
   scripts/detector_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
-# Install Python modules
-catkin_python_setup()
 
 # Install launch files
 install(DIRECTORY launch/
