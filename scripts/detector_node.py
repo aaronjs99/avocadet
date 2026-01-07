@@ -73,16 +73,16 @@ class AvocadetDetectorNode(object):
         self._image_topic = rospy.get_param('~image_topic', '/camera/image_raw')
         self._publish_annotated = rospy.get_param('~publish_annotated', True)
         
+        # Frame dimensions
+        self._frame_width = None
+        self._frame_height = None
+        
         # Initialize detection components
         self._initialize_detector()
         
         # Initialize ROS communication
         self._cv_bridge = CvBridge()
         self._setup_publishers_and_subscribers()
-        
-        # Frame dimensions
-        self._frame_width = None
-        self._frame_height = None
         
         rospy.loginfo(
             'Avocadet detector initialized | mode=%s, confidence=%.2f',
