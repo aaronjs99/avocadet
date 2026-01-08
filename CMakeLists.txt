@@ -51,6 +51,7 @@ install(DIRECTORY
 
 install(PROGRAMS
   avocadet_ros/detector_node.py
+  avocadet_ros/aruco_detector_3d.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
