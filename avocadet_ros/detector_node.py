@@ -27,12 +27,9 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
-# Add package source to path
-_PACKAGE_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(_PACKAGE_ROOT / 'src'))
 
-from avocadet import AvocadoDetector, ColorAnalyzer, SizeEstimator
-from avocadet.detector import Detection
+from avocadet_lib import AvocadoDetector, ColorAnalyzer, SizeEstimator
+from avocadet_lib.detector import Detection
 
 
 class AvocadetDetectorNode(Node):

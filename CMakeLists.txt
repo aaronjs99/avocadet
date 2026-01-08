@@ -39,8 +39,8 @@ ament_python_install_package(avocadet_ros)
 
 # Install the core detection library
 install(DIRECTORY
-  src/avocadet
-  DESTINATION lib/python3/dist-packages
+  src/avocadet_lib
+  DESTINATION lib/python3.8/site-packages
   PATTERN "*.pyc" EXCLUDE
   PATTERN "__pycache__" EXCLUDE
 )
@@ -60,7 +60,6 @@ install(PROGRAMS
 
 install(DIRECTORY
   launch
-  config
   DESTINATION share/${PROJECT_NAME}
 )
 
