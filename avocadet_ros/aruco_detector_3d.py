@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import math
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from geometry_msgs.msg import PointStamped
 
 class ImageSubscriber(Node):
     def __init__(self):
@@ -30,6 +31,8 @@ class ImageSubscriber(Node):
 
         self.get_logger().info(f'Subscribed color:{self.color_topic} depth:{self.depth_topic} info:{self.camera_info_topic}')
 
+        self.pos_pubs = {}  # id -> Publisher(PointStamped)
+
         # storage for latest depth & intrinsics
         self.latest_depth_img = None
         self.depth_encoding = None
@@ -47,9 +50,9 @@ class ImageSubscriber(Node):
         except AttributeError:
             self.detector = None
 
-        self.window_name = 'camera'
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self.window_name, 1280, 720)
+        # self.window_name = 'camera'
+        # cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        # cv2.resizeWindow(self.window_name, 1280, 720)
 
     def camera_info_callback(self, msg: CameraInfo):
         # take first CameraInfo and extract intrinsics
@@ -59,6 +62,8 @@ class ImageSubscriber(Node):
             self.fy = float(self.K[1,1])
             self.cx = float(self.K[0,2])
             self.cy = float(self.K[1,2])
+            if msg.header.frame_id:
+                self.camera_frame = msg.header.frame_id
             self.get_logger().info(f'Camera intrinsics fx={self.fx:.2f}, fy={self.fy:.2f}, cx={self.cx:.2f}, cy={self.cy:.2f}')
 
     def depth_callback(self, msg: Image):
@@ -113,19 +118,35 @@ class ImageSubscriber(Node):
                 # 3D point in camera frame
                 self.get_logger().info(f"Marker {marker_ids[i]} 3D (camera frame): X={X:.3f} m, Y={Y:.3f} m, Z={Z:.3f} m (pixel {u:.1f},{v:.1f})")
 
+                # publish pose: ensure publisher exists
+                point_msg = PointStamped()
+                point_msg.header.frame_id = self.camera_frame
+                point_msg.header.stamp = self.get_clock().now().to_msg()
+
+                point_msg.point.x = float(X)
+                point_msg.point.y = float(Y)
+                point_msg.point.z = float(Z)
+
+                mid = int(marker_ids[i])
+                topic = f'/aruco/marker_{mid}/position'
+                if mid not in self.pos_pubs:
+                    self.pos_pubs[mid] = self.create_publisher(PointStamped, topic, 10)
+                    self.get_logger().info(f'Created publisher for marker {mid} on {topic}')
+                self.pos_pubs[mid].publish(point_msg)
+                
                 # (Optional) draw the ID and coordinates on the image
                 text = f"id:{marker_ids[i]} ({X:.2f},{Y:.2f},{Z:.2f}m)"
                 cv2.putText(color_cv, text, (int(u)-50, int(v)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0,255,0), 2)
 
-        # draw markers and show
-        if corners is not None and ids is not None:
-            cv2.aruco.drawDetectedMarkers(color_cv, corners, ids)
+        # # draw markers and show
+        # if corners is not None and ids is not None:
+        #     cv2.aruco.drawDetectedMarkers(color_cv, corners, ids)
 
-        cv2.imshow(self.window_name, color_cv)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            self.get_logger().info("'q' pressed — shutting down.")
-            rclpy.shutdown()
+        # cv2.imshow(self.window_name, color_cv)
+        # key = cv2.waitKey(1) & 0xFF
+        # if key == ord('q'):
+        #     self.get_logger().info("'q' pressed — shutting down.")
+        #     rclpy.shutdown()
 
     def get_depth_meter(self, u, v, search_radius=3):
         """

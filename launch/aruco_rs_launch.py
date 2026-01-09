@@ -16,7 +16,7 @@ def generate_launch_description():
             ])
         ),
         launch_arguments={
-            'initial_reset': 'true',
+            'initial_reset': 'false',
             'enable_color': 'true',
             'enable_depth': 'true',
             'enable_sync': 'true',
