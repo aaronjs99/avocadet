@@ -8,7 +8,7 @@ from launch.substitutions import PathJoinSubstitution
 def generate_launch_description():
 
     aruco_node = Node(
-        package='marker_detection',
+        package='avocadet',
         executable='aruco_detector_3d.py',
         name='aruco_detector_node',
         output='screen'
