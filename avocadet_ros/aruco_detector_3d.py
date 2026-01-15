@@ -11,25 +11,36 @@ import math
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from geometry_msgs.msg import PointStamped
 
+
 class ImageSubscriber(Node):
     def __init__(self):
-        super().__init__('marker_detection')
+        super().__init__("marker_detection")
         # IMPORTANT: use the depth topic that is ALIGNED to color. Typical RealSense:
         # '/camera/aligned_depth_to_color/image_raw'  or '/camera/depth/image_rect_raw' if already aligned.
-        self.color_topic = '/camera/camera/color/image_raw'
-        self.depth_topic = '/camera/camera/aligned_depth_to_color/image_raw'
-        self.camera_info_topic = '/camera/camera/color/camera_info'  # color intrinsics (cx,cy,fx,fy)
+        self.color_topic = "/camera/camera/color/image_raw"
+        self.depth_topic = "/camera/camera/aligned_depth_to_color/image_raw"
+        self.camera_info_topic = (
+            "/camera/camera/color/camera_info"  # color intrinsics (cx,cy,fx,fy)
+        )
 
         self.bridge = CvBridge()
         qos = QoSProfile(depth=5)
         qos.reliability = QoSReliabilityPolicy.BEST_EFFORT
         qos.history = QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST
 
-        self.color_sub = self.create_subscription(Image, self.color_topic, self.color_callback, qos)
-        self.depth_sub = self.create_subscription(Image, self.depth_topic, self.depth_callback, qos)
-        self.info_sub = self.create_subscription(CameraInfo, self.camera_info_topic, self.camera_info_callback, qos)
+        self.color_sub = self.create_subscription(
+            Image, self.color_topic, self.color_callback, qos
+        )
+        self.depth_sub = self.create_subscription(
+            Image, self.depth_topic, self.depth_callback, qos
+        )
+        self.info_sub = self.create_subscription(
+            CameraInfo, self.camera_info_topic, self.camera_info_callback, qos
+        )
 
-        self.get_logger().info(f'Subscribed color:{self.color_topic} depth:{self.depth_topic} info:{self.camera_info_topic}')
+        self.get_logger().info(
+            f"Subscribed color:{self.color_topic} depth:{self.depth_topic} info:{self.camera_info_topic}"
+        )
 
         self.pos_pubs = {}  # id -> Publisher(PointStamped)
 
@@ -57,14 +68,16 @@ class ImageSubscriber(Node):
     def camera_info_callback(self, msg: CameraInfo):
         # take first CameraInfo and extract intrinsics
         if self.K is None:
-            self.K = np.array(msg.k).reshape((3,3))
-            self.fx = float(self.K[0,0])
-            self.fy = float(self.K[1,1])
-            self.cx = float(self.K[0,2])
-            self.cy = float(self.K[1,2])
+            self.K = np.array(msg.k).reshape((3, 3))
+            self.fx = float(self.K[0, 0])
+            self.fy = float(self.K[1, 1])
+            self.cx = float(self.K[0, 2])
+            self.cy = float(self.K[1, 2])
             if msg.header.frame_id:
                 self.camera_frame = msg.header.frame_id
-            self.get_logger().info(f'Camera intrinsics fx={self.fx:.2f}, fy={self.fy:.2f}, cx={self.cx:.2f}, cy={self.cy:.2f}')
+            self.get_logger().info(
+                f"Camera intrinsics fx={self.fx:.2f}, fy={self.fy:.2f}, cx={self.cx:.2f}, cy={self.cy:.2f}"
+            )
 
     def depth_callback(self, msg: Image):
         # store the latest depth image (do not convert to color!)
@@ -73,15 +86,15 @@ class ImageSubscriber(Node):
             # do not request desired_encoding — keep raw
             depth_cv = self.bridge.imgmsg_to_cv2(msg, desired_encoding=msg.encoding)
         except CvBridgeError as e:
-            self.get_logger().error(f'Depth CvBridge error: {e}')
+            self.get_logger().error(f"Depth CvBridge error: {e}")
             return
         self.latest_depth_img = depth_cv
 
     def color_callback(self, msg: Image):
         try:
-            color_cv = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            color_cv = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         except CvBridgeError as e:
-            self.get_logger().error(f'Color CvBridge error: {e}')
+            self.get_logger().error(f"Color CvBridge error: {e}")
             return
 
         gray = cv2.cvtColor(color_cv, cv2.COLOR_BGR2GRAY)
@@ -90,7 +103,9 @@ class ImageSubscriber(Node):
         if self.detector is not None:
             corners, ids, rejected = self.detector.detectMarkers(gray)
         else:
-            corners, ids, rejected = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.parameters)
+            corners, ids, rejected = cv2.aruco.detectMarkers(
+                gray, self.aruco_dict, parameters=self.parameters
+            )
 
         if ids is not None:
             try:
@@ -102,13 +117,15 @@ class ImageSubscriber(Node):
             # compute center pixel of each detected marker and get 3D point
             for i, c in enumerate(corners):
                 # corners[i] is shape (1,4,2) or (4,2) depending on OpenCV; normalize:
-                pts = np.array(c).reshape((-1,2))
-                u = float(np.mean(pts[:,0]))  # x pixel
-                v = float(np.mean(pts[:,1]))  # y pixel
+                pts = np.array(c).reshape((-1, 2))
+                u = float(np.mean(pts[:, 0]))  # x pixel
+                v = float(np.mean(pts[:, 1]))  # y pixel
 
                 z = self.get_depth_meter(u, v)
                 if z is None:
-                    self.get_logger().warning(f'No valid depth for marker {marker_ids[i]} at pixel ({u:.1f},{v:.1f})')
+                    self.get_logger().warning(
+                        f"No valid depth for marker {marker_ids[i]} at pixel ({u:.1f},{v:.1f})"
+                    )
                     continue
 
                 X = (u - self.cx) * z / self.fx
@@ -116,7 +133,9 @@ class ImageSubscriber(Node):
                 Z = z
 
                 # 3D point in camera frame
-                self.get_logger().info(f"Marker {marker_ids[i]} 3D (camera frame): X={X:.3f} m, Y={Y:.3f} m, Z={Z:.3f} m (pixel {u:.1f},{v:.1f})")
+                self.get_logger().info(
+                    f"Marker {marker_ids[i]} 3D (camera frame): X={X:.3f} m, Y={Y:.3f} m, Z={Z:.3f} m (pixel {u:.1f},{v:.1f})"
+                )
 
                 # publish pose: ensure publisher exists
                 point_msg = PointStamped()
@@ -128,15 +147,25 @@ class ImageSubscriber(Node):
                 point_msg.point.z = float(Z)
 
                 mid = int(marker_ids[i])
-                topic = f'/aruco/marker_{mid}/position'
+                topic = f"/aruco/marker_{mid}/position"
                 if mid not in self.pos_pubs:
                     self.pos_pubs[mid] = self.create_publisher(PointStamped, topic, 10)
-                    self.get_logger().info(f'Created publisher for marker {mid} on {topic}')
+                    self.get_logger().info(
+                        f"Created publisher for marker {mid} on {topic}"
+                    )
                 self.pos_pubs[mid].publish(point_msg)
-                
+
                 # (Optional) draw the ID and coordinates on the image
                 text = f"id:{marker_ids[i]} ({X:.2f},{Y:.2f},{Z:.2f}m)"
-                cv2.putText(color_cv, text, (int(u)-50, int(v)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0,255,0), 2)
+                cv2.putText(
+                    color_cv,
+                    text,
+                    (int(u) - 50, int(v) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.45,
+                    (0, 255, 0),
+                    2,
+                )
 
         # # draw markers and show
         # if corners is not None and ids is not None:
@@ -170,15 +199,15 @@ class ImageSubscriber(Node):
 
         # neighborhood sampling
         vals = []
-        for dy in range(-search_radius, search_radius+1):
-            for dx in range(-search_radius, search_radius+1):
+        for dy in range(-search_radius, search_radius + 1):
+            for dx in range(-search_radius, search_radius + 1):
                 x = iu + dx
                 y = iv + dy
                 if x < 0 or x >= w or y < 0 or y >= h:
                     continue
                 raw = self.latest_depth_img[y, x]
                 # handle different dtypes / encodings
-                if self.depth_encoding == '32FC1' or self.depth_encoding == '32FC3':
+                if self.depth_encoding == "32FC1" or self.depth_encoding == "32FC3":
                     # float32 in meters
                     if math.isfinite(float(raw)) and float(raw) > 0.0:
                         vals.append(float(raw))
@@ -199,13 +228,14 @@ class ImageSubscriber(Node):
         # robust median
         return float(np.median(vals))
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = ImageSubscriber()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info('KeyboardInterrupt, shutting down node.')
+        node.get_logger().info("KeyboardInterrupt, shutting down node.")
     finally:
         cv2.destroyAllWindows()
         try:
@@ -214,5 +244,6 @@ def main(args=None):
             pass
         rclpy.try_shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

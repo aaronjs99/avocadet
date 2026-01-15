@@ -18,10 +18,11 @@ from roboflow import Roboflow
 
 def main():
     # Get API key from environment
-    api_key = os.environ.get('ROBOFLOW_API_KEY')
-    
+    api_key = os.environ.get("ROBOFLOW_API_KEY")
+
     if not api_key:
-        print("""
+        print(
+            """
 ERROR: ROBOFLOW_API_KEY environment variable not set.
 
 To set it:
@@ -30,12 +31,14 @@ To set it:
 Or add to ~/.bashrc:
     echo "export ROBOFLOW_API_KEY='your-key-here'" >> ~/.bashrc
     source ~/.bashrc
-""")
+"""
+        )
         sys.exit(1)
-    
+
     rf = Roboflow(api_key=api_key)
-    
-    print("""
+
+    print(
+        """
 To download an avocado dataset:
 
 1. Go to: https://universe.roboflow.com/search?q=avocado
@@ -51,8 +54,9 @@ Example usage after finding a dataset:
     project = rf.workspace("workspace-name").project("project-name")
     version = project.version(1)
     dataset = version.download("yolov8", location="datasets/avocado_roboflow")
-""")
+"""
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
