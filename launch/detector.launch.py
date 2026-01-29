@@ -47,14 +47,9 @@ def generate_launch_description() -> LaunchDescription:
             description="Path to custom YOLO model weights (empty for default)",
         ),
         DeclareLaunchArgument(
-            "confidence",
+            "confidence_threshold",
             default_value="-1.0",
             description="Detection confidence threshold (-1.0 to use yaml)",
-        ),
-        DeclareLaunchArgument(
-            "mode",
-            default_value="hybrid",
-            description="Detection mode: yolo, segment, or hybrid",
         ),
         DeclareLaunchArgument(
             "publish_annotated",
@@ -78,8 +73,7 @@ def generate_launch_description() -> LaunchDescription:
                 "config_dir": LaunchConfiguration("config_dir"),
                 "image_topic": LaunchConfiguration("image_topic"),
                 "model_path": LaunchConfiguration("model_path"),
-                "confidence_threshold": LaunchConfiguration("confidence"),
-                "mode": LaunchConfiguration("mode"),
+                "confidence_threshold": LaunchConfiguration("confidence_threshold"),
                 "publish_annotated": LaunchConfiguration("publish_annotated"),
                 "use_sim_time": LaunchConfiguration("use_sim_time"),
             }

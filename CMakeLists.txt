@@ -38,14 +38,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 # Install the ROS2 node package
 ament_python_install_package(avocadet_ros)
-
-# Install the core detection library
-install(DIRECTORY
-  src/avocadet_lib
-  DESTINATION lib/python3.8/site-packages
-  PATTERN "*.pyc" EXCLUDE
-  PATTERN "__pycache__" EXCLUDE
-)
+ament_python_install_package(avocadet_lib)
 
 # ============================================================================
 # Executables

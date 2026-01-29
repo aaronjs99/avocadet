@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Flower ROS2 Detector Node
@@ -41,11 +40,12 @@ class UnifiedDetectorNode(Node):
     """
     ROS2 node for real-time flower/fruit detection.
 
-    Features:
-    - Configurable backend (Ultralytics, TensorRT, ONNX)
-    - Fisheye rectification validation
-    - Tiling support
-    - Low-latency threaded architecture
+    Attributes:
+        pipeline_config (dict): The loaded configuration dictionary.
+        geometry_manager (GeometryManager): Handles geometric transformations (rectification).
+        detector (UnifiedDetector): The deep learning detector instance.
+        color_analyzer (ColorAnalyzer): Analyzes dominant colors of detections.
+        size_estimator (SizeEstimator): Estimates physical/relative size of detections.
     """
 
     RIPENESS_COLORS = {
@@ -56,6 +56,7 @@ class UnifiedDetectorNode(Node):
     }
 
     def __init__(self) -> None:
+        """Initialize the UnifiedDetectorNode."""
         super().__init__("flower_detector")
 
         # 1. Declare Parameters
@@ -64,8 +65,7 @@ class UnifiedDetectorNode(Node):
         # 2. Load Configuration
         config_dir = self.get_parameter("config_dir").value
         if not config_dir:
-            # Fallback to package share directory would happen here in a real ROS pkg,
-            # but for this checkout we assume local config relative to CWD or passed arg
+            # Fallback to current working directory 'config' if not specified
             config_dir = os.path.join(os.getcwd(), "config")
 
         self.get_logger().info(f"Loading configuration from: {config_dir}")
@@ -113,13 +113,13 @@ class UnifiedDetectorNode(Node):
         self.drop_frames = self.runtime_config.get("drop_frames", True)
 
         # Start Worker
-        num_workers = self.runtime_config.get("worker_threads", 1)
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self._worker_thread.start()
 
         self.get_logger().info("Detector node initialized and started.")
 
     def _declare_parameters(self) -> None:
+        """Declare ROS parameters."""
         self.declare_parameter("config_dir", "")
         self.declare_parameter("model_path", "")
         self.declare_parameter("image_topic", "")
@@ -128,10 +128,14 @@ class UnifiedDetectorNode(Node):
         self.declare_parameter("lens_model", "")
         self.declare_parameter("rectify_enabled", False)
         self.declare_parameter("tiling_enabled", False)
+        self.declare_parameter("publish_annotated", True)
 
-    def _apply_ros_parameter_overrides(self):
-        # Helper to override if param is set
-        def override(section, key, param_name, cast_type=None):
+    def _apply_ros_parameter_overrides(self) -> None:
+        """Override configuration with ROS parameters if set."""
+
+        def override(
+            section: str, key: str, param_name: str, cast_type: type = None
+        ) -> None:
             val = self.get_parameter(param_name).value
             if val and (val != "" and val != -1.0):
                 if cast_type:
@@ -144,9 +148,6 @@ class UnifiedDetectorNode(Node):
         override("detector", "backend", "backend")
         override("geometry", "lens_model", "lens_model")
 
-        # Boolean overrides are tricky if default is False in declaration but we want to know if user set it.
-        # Ideally usage of specific values or checking parameter set status.
-        # For now, we assume if it's true in param, it overrides.
         if self.get_parameter("rectify_enabled").value:
             self.config_loader.update("geometry", "rectify_enabled", True)
 
@@ -159,6 +160,7 @@ class UnifiedDetectorNode(Node):
             self.config_loader.update("ros_topics", "subscribe", {"image": img_topic})
 
     def _setup_publishers_and_subscribers(self) -> None:
+        """Initialize ROS publishers and subscribers."""
         topics = self.config_loader.get("ros_topics")
 
         # Subscribers
@@ -185,23 +187,35 @@ class UnifiedDetectorNode(Node):
             FruitDetectionArray, topics["publish"]["fruit_detections"], 10
         )
 
-        vis_config = self.config_loader.get("visualization")
-        self._publish_annotated_flag = vis_config.get(
-            "enable_stats_panel", True
-        )  # Using this as master switch for now
+        # Use ROS parameter for publishing switch, fallback to True
+        self._publish_annotated_flag = self.get_parameter("publish_annotated").value
 
         if self._publish_annotated_flag:
             self._annotated_publisher = self.create_publisher(
                 Image, topics["publish"]["annotated_image"], 10
             )
 
-    def _camera_info_callback(self, msg: CameraInfo):
-        # Update geometry if using camera_info source
+    def _camera_info_callback(self, msg: CameraInfo) -> None:
+        """
+        Handle incoming CameraInfo messages.
+
+        Args:
+            msg: The CameraInfo message.
+        """
         geo_config = self.config_loader.get("geometry")
         if geo_config.get("calibration_source") == "camera_info":
             self.geometry_manager.update_from_camera_info(msg)
 
     def _image_callback(self, msg: Image) -> None:
+        """
+        Handle incoming Image messages.
+
+        This callback merely updates the latest available image for the worker thread
+        to consume, ensuring we don't block the ROS executor.
+
+        Args:
+            msg: The Image message.
+        """
         with self._latest_msg_lock:
             self._latest_msg = msg
         self._new_msg_event.set()

@@ -69,16 +69,21 @@ class GeometryManager:
             # Estimate new camera matrix for undistortion
             # Simple balance=0 or 1 approach, or maintain K
             # For simplicity in this v1, we try to preserve K unless we want strictly 'valid' crop
+            # Ensure D is correct shape for fisheye (4,) or (4, 1) and has 4 coeffs
+            D_use = self.D
+            if len(D_use) >= 4:
+                D_use = D_use[:4].reshape(-1, 1)
+
             new_K = (
                 cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(
-                    self.K, self.D, (w, h), np.eye(3), balance=1.0
+                    self.K, D_use, (w, h), np.eye(3), balance=1.0
                 )
-                if len(self.D) >= 4
+                if len(D_use) >= 4
                 else self.K
             )
 
             self._map1, self._map2 = cv2.fisheye.initUndistortRectifyMap(
-                self.K, self.D, np.eye(3), new_K, (w, h), cv2.CV_16SC2
+                self.K, D_use, np.eye(3), new_K, (w, h), cv2.CV_16SC2
             )
         elif self.lens_model == "pinhole":
             new_K, roi = cv2.getOptimalNewCameraMatrix(

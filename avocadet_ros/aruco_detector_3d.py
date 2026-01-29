@@ -61,6 +61,10 @@ class ImageSubscriber(Node):
         except AttributeError:
             self.detector = None
 
+        self.camera_frame = (
+            "camera_link"  # Default frame to avoid crash if info not received
+        )
+
         # self.window_name = 'camera'
         # cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
         # cv2.resizeWindow(self.window_name, 1280, 720)

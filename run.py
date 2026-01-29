@@ -17,8 +17,8 @@ import sys
 import os
 import time
 
-# Add src to path for development without pip install
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+# Add current directory to path if needed (implicit for script execution)
+# sys.path.insert(0, os.path.dirname(__file__))
 
 from avocadet_lib import LivestreamProcessor, ConfigLoader
 
@@ -30,11 +30,19 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("--source", "-s", default=None, help="Video source (overrides config)")
-    parser.add_argument("--config-dir", default="config", help="Path to config directory")
-    parser.add_argument("--model", "-m", default=None, help="Model path (overrides config)")
+    parser.add_argument(
+        "--source", "-s", default=None, help="Video source (overrides config)"
+    )
+    parser.add_argument(
+        "--config-dir", default="config", help="Path to config directory"
+    )
+    parser.add_argument(
+        "--model", "-m", default=None, help="Model path (overrides config)"
+    )
     parser.add_argument("--backend", default=None, help="Backend (overrides config)")
-    parser.add_argument("--confidence", "-c", type=float, default=None, help="Confidence threshold")
+    parser.add_argument(
+        "--confidence", "-c", type=float, default=None, help="Confidence threshold"
+    )
     parser.add_argument("--width", type=int, default=1920, help="Camera width")
     parser.add_argument("--height", type=int, default=1080, help="Camera height")
     parser.add_argument("--no-window", action="store_true", help="Headless mode")
@@ -45,15 +53,15 @@ def main():
 
     # Load Configuration
     config_loader = ConfigLoader(args.config_dir)
-    
+
     # Resolve Source
     source = args.source
     if source is None:
         # Try config
-        # We don't have a 'source' key in camera.yaml explicitly standard, 
+        # We don't have a 'source' key in camera.yaml explicitly standard,
         # but we can look for it or default to 0
         source = 0
-    
+
     # Try converting source to int
     try:
         source = int(source)
@@ -70,13 +78,16 @@ def main():
 
     # Verbose callback
     last_print = 0
+
     def on_frame(result):
         nonlocal last_print
         now = time.time()
         if result.count > 0:
             print(f"[{result.fps:.1f} FPS] Detected {result.count} object(s)")
-            for i, (det, analysis) in enumerate(zip(result.detections, result.analyses)):
-               print(f"  #{i+1}: {det.class_name} conf={det.confidence:.0%}")
+            for i, (det, analysis) in enumerate(
+                zip(result.detections, result.analyses)
+            ):
+                print(f"  #{i+1}: {det.class_name} conf={det.confidence:.0%}")
             last_print = now
         elif now - last_print > 1.0:
             print(f"[{result.fps:.1f} FPS] No detections...")
@@ -92,15 +103,17 @@ def main():
             backend=args.backend,
             width=args.width,
             height=args.height,
-            config=config_loader.config
+            config=config_loader.config,
         )
-        
+
         processor.run(show_window=not args.no_window)
-        
+
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()

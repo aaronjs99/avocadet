@@ -76,7 +76,7 @@ class ThreadedVideoCapture:
                 # Keep trying or stop? For files, we might want to stop or loop.
                 # For now, let the main loop handle 'not ret' by checking isOpened
                 # But if read fails (end of file), we should probably stop or flag it.
-                if isinstance(self.cap, cv2.VideoCapture) and not self.cap.isOpened():
+                if not self.cap.isOpened():
                     self.running = False
 
             # small sleep to prevent CPU hogging if capture is fast,
@@ -144,20 +144,25 @@ class LivestreamProcessor:
 
         # Resolve config logic: Argument > Config > Default
         det_config = self.config.get("detector", {})
-        
+
         final_model_path = model_path or det_config.get("model_path")
-        final_conf = confidence_threshold if confidence_threshold is not None else det_config.get("confidence_threshold", 0.5)
+        final_conf = (
+            confidence_threshold
+            if confidence_threshold is not None
+            else det_config.get("confidence_threshold", 0.5)
+        )
         final_backend = backend or det_config.get("backend", "ultralytics")
-        
+
         # Initialize components
         from .geometry import GeometryManager
+
         self.geometry_manager = GeometryManager(self.config.get("geometry", {}))
-        
+
         self.detector = UnifiedDetector(
             model_path=final_model_path,
             confidence_threshold=final_conf,
             backend=final_backend,
-            config=self.config
+            config=self.config,
         )
         self.color_analyzer = ColorAnalyzer()
         self.size_estimator = SizeEstimator()
@@ -414,7 +419,10 @@ class LivestreamProcessor:
         """Stop the livestream processor."""
         self.running = False
         if self.cap is not None:
-            self.cap.release()
+            if isinstance(self.cap, ThreadedVideoCapture):
+                self.cap.stop()
+            else:
+                self.cap.release()
             self.cap = None
         cv2.destroyAllWindows()
 

@@ -67,8 +67,7 @@ ros2 launch avocadet detector.launch.py image_topic:=/camera/color/image_raw
 # With custom model and confidence
 ros2 launch avocadet detector.launch.py \
     model_path:=/path/to/model.pt \
-    confidence:=0.6 \
-    mode:=yolo
+    confidence_threshold:=0.6
 ```
 
 ### Gazebo Integration
@@ -117,10 +116,23 @@ ros2 launch avocadet detector.launch.py \
     model_path:=models/custom.engine \
     backend:=tensorrt
 
-# Enable Fisheye Rectification
-ros2 launch avocadet detector.launch.py \
     lens_model:=fisheye \
     rectify_enabled:=true
+```
+
+## Standalone Usage (Non-ROS)
+
+You can run the detector without ROS using the standalone script. This is useful for testing on videos or webcams directly.
+
+```bash
+# Run on default webcam (0)
+python3 run.py
+
+# Run on a video file
+python3 run.py --source video.mp4
+
+# Run with custom model
+python3 run.py --model models/best.pt --confidence 0.5
 ```
 
 ## ROS2 Interface
@@ -138,48 +150,41 @@ ros2 launch avocadet detector.launch.py \
 
 ## Message Format
 
-Detection results are published as JSON:
+Detection results are published as ROS messages:
 
-```json
-{
-  "header": {
-    "stamp": {"sec": 1703520000, "nanosec": 123456789},
-    "frame_id": "camera_optical_frame"
-  },
-  "count": 3,
-  "detections": [
-    {
-      "bbox": {"x": 100, "y": 150, "width": 80, "height": 120},
-      "confidence": 0.923,
-      "ripeness": "ripe",
-      "size_category": "medium",
-      "relative_size": 0.0512,
-      "color": {"r": 34, "g": 85, "b": 28}
-    }
-  ]
-}
-```
+- `avocadet/FlowerDetectionArray`: Array of `FlowerDetection` messages
+- `avocadet/FruitDetectionArray`: Array of `FruitDetection` messages
+
+Example `FruitDetection` fields:
+- `bbox`: Bounding box (x, y, w, h)
+- `confidence`: Detection confidence (0-1)
+- `ripeness`: "unripe", "ripe", etc.
+- `size_category`: "small", "medium", "large"
+- `relative_size`: Ratio of fruit area to frame area
+- `dominant_color`: Average RGB color
+
 
 ## Package Structure
 
-```
 avocadet/
 ├── package.xml             # ROS2 package manifest
 ├── CMakeLists.txt          # Build configuration
 ├── msg/                    # Custom message definitions
 │   ├── BoundingBox.msg
 │   ├── Color.msg
-│   ├── AvocadoDetection.msg
-│   └── AvocadoDetectionArray.msg
+│   ├── FlowerDetection.msg
+│   ├── FlowerDetectionArray.msg
+│   ├── FruitDetection.msg
+│   └── FruitDetectionArray.msg
 ├── launch/
 │   └── detector.launch.py  # Launch configuration
 ├── config/                 # Parameter files
 ├── avocadet_ros/           # ROS2 nodes
 │   ├── __init__.py
 │   └── detector_node.py    # Main detector node
-├── src/avocadet/           # Core detection library
-│   ├── detector.py         # YOLO + segmentation
-│   ├── segmenter.py        # Color-based segmentation
+├── avocadet_lib/           # Core detection library
+│   ├── detector.py         # Unified Detector
+│   ├── geometry.py         # Lens geometry & tiling
 │   ├── analyzer.py         # Ripeness & size analysis
 │   ├── stream.py           # Video stream processing
 │   └── visualizer.py       # Visualization utilities
@@ -195,13 +200,13 @@ Train a custom detection model for your specific avocado varieties:
 
 ```bash
 # 1. Annotate frames from your video
-python3 tools/annotate.py --video input.mp4 --every 20
+python3 tools/annotate.py --video demo.mp4 --every 20
 
 # 2. Train YOLOv8
 python3 tools/train.py --dataset datasets/custom --epochs 50
 
 # 3. Use trained model
-ros2 launch avocadet detector.launch.py model_path:=/path/to/best.pt mode:=yolo
+ros2 launch avocadet detector.launch.py model_path:=/path/to/best.pt
 ```
 
 ## Authors
