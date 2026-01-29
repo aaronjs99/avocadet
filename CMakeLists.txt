@@ -25,8 +25,10 @@ find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BoundingBox.msg"
   "msg/Color.msg"
-  "msg/AvocadoDetection.msg"
-  "msg/AvocadoDetectionArray.msg"
+  "msg/FlowerDetection.msg"
+  "msg/FlowerDetectionArray.msg"
+  "msg/FruitDetection.msg"
+  "msg/FruitDetectionArray.msg"
   DEPENDENCIES std_msgs
 )
 

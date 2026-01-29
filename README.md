@@ -83,39 +83,58 @@ ros2 launch avocadet detector.launch.py \
     use_sim_time:=true
 ```
 
+## Configuration
+
+Avocadet uses a modular configuration system located in the `config/` directory.
+
+- `detector.yaml`: Model and backend settings
+- `geometry.yaml`: Lens model (pinhole/fisheye) and calibration
+- `runtime.yaml`: Latency constraints and frame measurement
+- `ros_topics.yaml`: ROS topic remapping
+- `tiling.yaml`: Tiling strategy for high-res images
+
+See [docs/config.md](docs/config.md) for details.
+
+## Usage
+
+### Basic Launch
+
+```bash
+# Launch with default configuration (loads from package config/ directory)
+ros2 launch avocadet detector.launch.py
+
+# Launch with custom configuration directory
+ros2 launch avocadet detector.launch.py config_dir:=/path/to/my/config
+```
+
+### Overriding Configuration
+
+Key parameters can be overridden directly via launch arguments:
+
+```bash
+# Override model and backend
+ros2 launch avocadet detector.launch.py \
+    model_path:=models/custom.engine \
+    backend:=tensorrt
+
+# Enable Fisheye Rectification
+ros2 launch avocadet detector.launch.py \
+    lens_model:=fisheye \
+    rectify_enabled:=true
+```
+
 ## ROS2 Interface
 
-### Subscribed Topics
+### Subscribed Topics (Configurable in ros_topics.yaml)
 
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/camera/image_raw` | `sensor_msgs/Image` | Input camera stream |
+- `/camera/image_raw` (sensor_msgs/Image)
+- `/camera/camera_info` (sensor_msgs/CameraInfo)
 
 ### Published Topics
 
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/avocadet/detections` | `std_msgs/String` | JSON-formatted detection results |
-| `/avocadet/annotated_image` | `sensor_msgs/Image` | Visualized output with bounding boxes |
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `image_topic` | string | `/camera/image_raw` | Camera topic to subscribe |
-| `model_path` | string | `""` | Custom YOLO model path |
-| `confidence_threshold` | float | `0.5` | Detection confidence [0.0-1.0] |
-| `mode` | string | `hybrid` | Detection mode |
-| `publish_annotated` | bool | `true` | Publish annotated images |
-| `use_sim_time` | bool | `false` | Use Gazebo simulation time |
-
-### Detection Modes
-
-| Mode | Description |
-|------|-------------|
-| `hybrid` | Combines YOLO detection + color segmentation (default) |
-| `yolo` | YOLOv8 object detection only |
-| `segment` | Color-based segmentation only (fast, CPU-friendly) |
+- `/flower/detections` (FlowerDetectionArray)
+- `/fruit/detections` (FruitDetectionArray)
+- `/avocadet/annotated_image` (sensor_msgs/Image)
 
 ## Message Format
 

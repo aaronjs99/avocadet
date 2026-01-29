@@ -51,9 +51,9 @@ def download_dataset():
 
 def train_model(
     dataset_path: str = "datasets/avocado",
-    model_size: str = "n",  # n, s, m, l, x
+    model_size: str = "s",  # n, s, m, l, x
     epochs: int = 100,
-    imgsz: int = 640,
+    imgsz: int = 768,
     batch: int = 16,
     device: str = "0",  # GPU device, or "cpu"
 ):
@@ -142,9 +142,9 @@ def main():
     )
     parser.add_argument(
         "--model-size",
-        default="n",
+        default="s",
         choices=["n", "s", "m", "l", "x"],
-        help="YOLOv8 model size (default: n)",
+        help="YOLOv8 model size (default: s)",
     )
     parser.add_argument(
         "--epochs", type=int, default=100, help="Training epochs (default: 100)"
@@ -153,7 +153,7 @@ def main():
         "--batch", type=int, default=16, help="Batch size (default: 16)"
     )
     parser.add_argument(
-        "--imgsz", type=int, default=640, help="Image size (default: 640)"
+        "--imgsz", type=int, default=768, help="Image size (default: 768)"
     )
     parser.add_argument("--device", default="0", help="Device: GPU id or 'cpu'")
     parser.add_argument("--dataset", default="datasets/avocado", help="Dataset path")

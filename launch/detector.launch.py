@@ -32,6 +32,11 @@ def generate_launch_description() -> LaunchDescription:
     # Declare launch arguments
     declared_arguments = [
         DeclareLaunchArgument(
+            "config_dir",
+            default_value="",
+            description="Path to configuration directory (defaults to package config/)",
+        ),
+        DeclareLaunchArgument(
             "image_topic",
             default_value="/camera/image_raw",
             description="Input camera image topic",
@@ -43,8 +48,8 @@ def generate_launch_description() -> LaunchDescription:
         ),
         DeclareLaunchArgument(
             "confidence",
-            default_value="0.5",
-            description="Detection confidence threshold (0.0-1.0)",
+            default_value="-1.0",
+            description="Detection confidence threshold (-1.0 to use yaml)",
         ),
         DeclareLaunchArgument(
             "mode",
@@ -70,6 +75,7 @@ def generate_launch_description() -> LaunchDescription:
         name="avocadet_detector",
         parameters=[
             {
+                "config_dir": LaunchConfiguration("config_dir"),
                 "image_topic": LaunchConfiguration("image_topic"),
                 "model_path": LaunchConfiguration("model_path"),
                 "confidence_threshold": LaunchConfiguration("confidence"),
@@ -87,6 +93,8 @@ def generate_launch_description() -> LaunchDescription:
         msg=[
             "Launching Avocadet detector on topic: ",
             LaunchConfiguration("image_topic"),
+            " Config dir: ",
+            LaunchConfiguration("config_dir"),
         ]
     )
 

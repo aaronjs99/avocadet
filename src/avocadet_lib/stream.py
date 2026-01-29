@@ -21,11 +21,12 @@ import threading
 import cv2
 import numpy as np
 
-from .detector import AvocadoDetector, Detection
+from .detector import UnifiedDetector
+from .backends.base import Detection
 from .analyzer import (
     ColorAnalyzer,
     SizeEstimator,
-    AvocadoAnalysis,
+    AnalysisAttributes,
     Ripeness,
     SizeCategory,
 )
@@ -37,10 +38,66 @@ class FrameResult:
 
     frame: np.ndarray
     detections: List[Detection]
-    analyses: List[AvocadoAnalysis]
+    analyses: List[AnalysisAttributes]
     count: int
     fps: float
     timestamp: float
+
+
+class ThreadedVideoCapture:
+    """
+    Threaded video capture to ensure we always get the latest frame.
+    Prevents buffering delay when processing is slower than capture.
+    """
+
+    def __init__(self, source):
+        self.cap = cv2.VideoCapture(source)
+        self.lock = threading.Lock()
+        self.latest_frame = None
+        self.ret = False
+        self.running = False
+        self.thread = None
+
+    def start(self):
+        if self.running:
+            return self
+        self.running = True
+        self.thread = threading.Thread(target=self._update, daemon=True)
+        self.thread.start()
+        return self
+
+    def _update(self):
+        while self.running:
+            ret, frame = self.cap.read()
+            with self.lock:
+                self.latest_frame = frame
+                self.ret = ret
+            if not ret:
+                # Keep trying or stop? For files, we might want to stop or loop.
+                # For now, let the main loop handle 'not ret' by checking isOpened
+                # But if read fails (end of file), we should probably stop or flag it.
+                if isinstance(self.cap, cv2.VideoCapture) and not self.cap.isOpened():
+                    self.running = False
+
+            # small sleep to prevent CPU hogging if capture is fast,
+            # but we want low latency so keep it minimal or 0.
+            # time.sleep(0.001)
+
+    def read(self):
+        with self.lock:
+            return self.ret, self.latest_frame
+
+    def stop(self):
+        self.running = False
+        if self.thread:
+            self.thread.join()
+        self.cap.release()
+
+    def get(self, prop):
+        return self.cap.get(prop)
+
+    def isOpened(self):
+        return self.cap.isOpened()
 
 
 class LivestreamProcessor:
@@ -61,7 +118,9 @@ class LivestreamProcessor:
         confidence_threshold: float = 0.5,
         process_every_n_frames: int = 1,
         on_frame_callback: Optional[Callable[[FrameResult], None]] = None,
-        mode: str = "hybrid",  # 'yolo', 'segment', or 'hybrid'
+        backend: str = "ultralytics",
+        width: int = 640,
+        height: int = 480,
     ):
         """
         Initialize the livestream processor.
@@ -72,15 +131,19 @@ class LivestreamProcessor:
             confidence_threshold: Minimum detection confidence.
             process_every_n_frames: Process every Nth frame for performance.
             on_frame_callback: Callback function for each processed frame.
-            mode: Detection mode - 'yolo', 'segment', or 'hybrid'.
+            backend: Inference backend ('ultralytics', 'onnx', 'tensorrt').
         """
         self.source = source
         self.process_every_n_frames = process_every_n_frames
         self.on_frame_callback = on_frame_callback
+        self.width = width
+        self.height = height
 
         # Initialize components
-        self.detector = AvocadoDetector(
-            model_path=model_path, confidence_threshold=confidence_threshold, mode=mode
+        self.detector = UnifiedDetector(
+            model_path=model_path,
+            confidence_threshold=confidence_threshold,
+            backend=backend,
         )
         self.color_analyzer = ColorAnalyzer()
         self.size_estimator = SizeEstimator()
@@ -96,7 +159,30 @@ class LivestreamProcessor:
 
     def _open_source(self) -> bool:
         """Open the video source."""
-        self.cap = cv2.VideoCapture(self.source)
+        # Use threaded capture for webcams/streams to reduce latency
+        # For video files, synchronous might be better to avoid skipping frames if analysis is desired on all
+        # But user wants low delay, so let's default to threaded for all for consistency,
+        # or check if source is int (webcam) or rtsp str.
+
+        use_threaded = False
+        if isinstance(self.source, int):  # Webcam
+            use_threaded = True
+        elif isinstance(self.source, str) and (
+            self.source.startswith("rtsp") or self.source.startswith("http")
+        ):
+            use_threaded = True
+
+        if use_threaded:
+            # Set resolution before starting thread if possible, or support it in ThreadedVideoCapture
+            # Set resolution before starting thread
+            threaded_cap = ThreadedVideoCapture(self.source)
+            threaded_cap.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            threaded_cap.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            self.cap = threaded_cap.start()
+        else:
+            self.cap = cv2.VideoCapture(self.source)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
 
         if not self.cap.isOpened():
             print(f"Error: Could not open video source: {self.source}")
@@ -132,12 +218,15 @@ class LivestreamProcessor:
             size_category, relative_size = self.size_estimator.estimate(detection.bbox)
 
             analyses.append(
-                AvocadoAnalysis(
+                AnalysisAttributes(
                     dominant_color=color,
                     dominant_color_name=color_name,
-                    ripeness=ripeness,
                     size_category=size_category,
                     relative_size=relative_size,
+                    ripeness=ripeness,
+                    # Defaults for attributes not yet estimated
+                    sex="unknown",
+                    quality=0.5,
                 )
             )
 
@@ -199,34 +288,6 @@ class LivestreamProcessor:
                 lambda v: None,
             )
 
-            # Min area for segmentation (100-5000)
-            if self.detector.segmenter is not None:
-                cv2.createTrackbar(
-                    "Min Area",
-                    window_name,
-                    self.detector.segmenter.min_area,
-                    5000,
-                    lambda v: None,
-                )
-
-                # Max area for segmentation (5000-100000)
-                cv2.createTrackbar(
-                    "Max Area",
-                    window_name,
-                    min(self.detector.segmenter.max_area, 100000),
-                    100000,
-                    lambda v: None,
-                )
-
-                # Circularity threshold (0-100, displayed as 0.0-1.0)
-                cv2.createTrackbar(
-                    "Circular %",
-                    window_name,
-                    int(self.detector.segmenter.circularity_threshold * 100),
-                    100,
-                    lambda v: None,
-                )
-
         print(f"Starting avocado detection on source: {self.source}")
         print(
             "Press 'q' to quit, 'p' to pause, 's' to save screenshot, 'f' to fullscreen"
@@ -244,16 +305,32 @@ class LivestreamProcessor:
 
                 ret, frame = self.cap.read()
                 if not ret:
+                    # Threaded capture might return False if it hasn't captured first frame yet
+                    # or if video ended.
+                    if isinstance(self.cap, ThreadedVideoCapture):
+                        if self.cap.isOpened():
+                            # Just wait a bit and retry
+                            time.sleep(0.01)
+                            continue
+
                     # End of video or stream error
                     if isinstance(self.source, str) and not self.source.startswith(
                         ("rtsp://", "http://")
                     ):
-                        # Video file ended, loop back
-                        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        continue
+                        # Video file ended, loop back (only works for non-threaded standard capture easily)
+                        # For now, just stop or break.
+                        if not isinstance(self.cap, ThreadedVideoCapture):
+                            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                            continue
+                        else:
+                            print("Video file ended")
+                            break
                     else:
                         print("Stream ended or error occurred")
                         break
+
+                if isinstance(self.cap, ThreadedVideoCapture) and frame is None:
+                    continue
 
                 self.frame_count += 1
 
@@ -261,16 +338,6 @@ class LivestreamProcessor:
                 if show_window:
                     conf = cv2.getTrackbarPos("Confidence %", window_name) / 100.0
                     self.detector.confidence_threshold = max(0.01, conf)
-
-                    if self.detector.segmenter is not None:
-                        self.detector.segmenter.min_area = cv2.getTrackbarPos(
-                            "Min Area", window_name
-                        )
-                        self.detector.segmenter.max_area = cv2.getTrackbarPos(
-                            "Max Area", window_name
-                        )
-                        circ = cv2.getTrackbarPos("Circular %", window_name) / 100.0
-                        self.detector.segmenter.circularity_threshold = circ
 
                 # Process frame (skip some for performance if needed)
                 if self.frame_count % self.process_every_n_frames == 0:
@@ -299,7 +366,7 @@ class LivestreamProcessor:
                     self.paused = True
                 elif key == ord("s"):
                     # Save screenshot
-                    filename = f"avocadet_screenshot_{int(time.time())}.png"
+                    filename = f"data/avocadet_screenshot_{int(time.time())}.png"
                     cv2.imwrite(filename, annotated_frame)
                     print(f"Screenshot saved: {filename}")
                 elif key == ord("f"):

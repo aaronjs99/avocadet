@@ -1,0 +1,16 @@
+# Backends Configuration
+
+tensorrt:
+  precision: "fp16"  # "fp32", "fp16"
+  engine_cache_path: "models/engines"
+  max_workspace_size: 1073741824 # 1GB
+  # If true, allows building the engine if not found
+  build_if_missing: true
+
+onnx:
+  provider: "CUDAExecutionProvider"  # or "CPUExecutionProvider"
+  opset_version: 12
+
+ultralytics:
+  # Internal Ultralytics settings if needed
+  verbose: false

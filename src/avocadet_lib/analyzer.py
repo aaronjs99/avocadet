@@ -16,7 +16,7 @@ License:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, Optional
 import numpy as np
 import cv2
 
@@ -39,24 +39,27 @@ class SizeCategory(Enum):
 
 
 @dataclass
-class AvocadoAnalysis:
-    """Complete analysis of a detected avocado."""
+class AnalysisAttributes:
+    """Attributes for a detected object (Flower or Fruit)."""
 
     dominant_color: Tuple[int, int, int]  # BGR
     dominant_color_name: str
-    ripeness: Ripeness
     size_category: SizeCategory
-    relative_size: float  # 0.0 to 1.0
+    relative_size: float
+    # Optional fields
+    ripeness: Optional[Ripeness] = None
+    sex: str = "unknown"  # male, female, unknown
+    quality: float = 0.5  # 0.0 to 1.0
 
 
 class ColorAnalyzer:
     """
-    Analyzes color of detected avocados to determine ripeness.
+    Analyzes color of detected flowers to determine ripeness.
 
     Uses HSV color space for more robust color analysis.
     """
 
-    # HSV ranges for avocado colors (H: 0-180, S: 0-255, V: 0-255)
+    # HSV ranges for flower colors (H: 0-180, S: 0-255, V: 0-255)
     COLOR_RANGES = {
         "bright_green": ((35, 50, 50), (85, 255, 255)),  # Unripe
         "dark_green": ((35, 30, 30), (85, 150, 150)),  # Nearly ripe

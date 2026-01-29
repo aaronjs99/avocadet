@@ -100,6 +100,9 @@ build/
 Thumbs.db
 
 # --- Custom Rules ---
+# Models
+models/
+!models/README.md
 
 # YOLO / Ultralytics
 runs/
@@ -115,7 +118,7 @@ datasets/
 !pyproject.toml
 
 # Screenshots and video outputs
-avocadet_screenshot_*.png
+data/avocadet_screenshot_*.png
 *.mp4
 !demo/demo.mp4
 *.avi

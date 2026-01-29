@@ -18,8 +18,8 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
-from .detector import Detection
-from .analyzer import AvocadoAnalysis, Ripeness, SizeCategory
+from .backends.base import Detection
+from .analyzer import AnalysisAttributes, Ripeness, SizeCategory
 
 
 class Visualizer:
@@ -74,7 +74,7 @@ class Visualizer:
         self,
         frame: np.ndarray,
         detections: List[Detection],
-        analyses: List[AvocadoAnalysis],
+        analyses: List[AnalysisAttributes],
         count: int,
         fps: float,
     ) -> np.ndarray:
@@ -107,7 +107,7 @@ class Visualizer:
         self,
         frame: np.ndarray,
         detection: Detection,
-        analysis: AvocadoAnalysis,
+        analysis: AnalysisAttributes,
         index: int,
     ) -> None:
         """Draw a single detection with its analysis."""
@@ -120,7 +120,7 @@ class Visualizer:
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, self.line_thickness)
 
         # Build label text
-        label_parts = [f"#{index}"]
+        label_parts = [f"#{index}", detection.class_name]
 
         if self.show_ripeness:
             label_parts.append(analysis.ripeness.value)
@@ -183,7 +183,11 @@ class Visualizer:
         )
 
     def _draw_stats_panel(
-        self, frame: np.ndarray, count: int, fps: float, analyses: List[AvocadoAnalysis]
+        self,
+        frame: np.ndarray,
+        count: int,
+        fps: float,
+        analyses: List[AnalysisAttributes],
     ) -> None:
         """Draw the statistics panel."""
         h, w = frame.shape[:2]

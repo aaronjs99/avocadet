@@ -1,0 +1,12 @@
+# Camera Configuration
+# Defines source and implicit geometry if not using CameraInfo
+
+frame_id: "camera_link"
+image_topic: "/camera/image_raw"
+camera_info_topic: "/camera/camera_info"
+
+# Basic resolution expected
+width: 1920
+height: 1080
+fps: 30
+encoding: "bgr8"

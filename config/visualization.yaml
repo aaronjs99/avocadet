@@ -1,0 +1,15 @@
+# Visualization Configuration
+
+enable_stats_panel: true
+draw_boxes: true
+draw_labels: true
+draw_confidence: true
+
+# Colors for bounding boxes (BGR)
+colors:
+  default: [0, 255, 0]
+  flower: [255, 0, 255]
+  fruit: [0, 165, 255]
+
+line_thickness: 2
+font_scale: 0.5

@@ -1,0 +1,12 @@
+# ROS Topics Configuration
+
+# Subscribed Topics
+subscribe:
+  image: "/camera/image_raw"
+  camera_info: "/camera/camera_info"
+
+# Published Topics
+publish:
+  flower_detections: "/flower/detections"
+  fruit_detections: "/fruit/detections"
+  annotated_image: "/avocadet/annotated_image"

@@ -1,0 +1,20 @@
+# Detector Configuration
+
+# Path to the model weights file (can be absolute or relative to package)
+# Overridden by ROS parameter 'model_path'
+model_path: "models/yolov8n.pt"
+
+# Backend to use: "ultralytics", "onnx", "tensorrt"
+backend: "ultralytics"
+
+# Confidence threshold for detections
+confidence_threshold: 0.5
+
+# Device: "cpu", "cuda", or index e.g. "0"
+device: "0"
+
+# Input size for the model (width, height)
+input_size: [640, 640]
+
+# Optional class allowlist (empty list means all classes)
+class_allowlist: []

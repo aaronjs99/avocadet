@@ -1,0 +1,18 @@
+# Tiling Configuration
+# Used for high-res inference fallback
+
+tiling_enabled: false
+
+# Grid strategy: [rows, cols]
+grid: [2, 2]
+
+# Overlap in pixels between tiles
+overlap_px: 100
+
+# IoU threshold to merge duplicate detections across tile boundaries
+merge_iou_threshold: 0.5
+
+# Max tiles to process per frame (for load shedding)
+# A 2x2 grid is 4 tiles. If set to 2, we process only first 2? 
+# Usually set >= rows*cols
+max_tiles_per_frame: 4

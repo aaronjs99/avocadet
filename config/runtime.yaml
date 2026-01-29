@@ -1,0 +1,16 @@
+# Runtime Configuration
+
+# Target processing rate (Hz)
+target_hz: 20.0
+
+# Max end-to-end latency allowed before dropping old frames (ms)
+max_end_to_end_latency_ms: 100
+
+# Strict drop policy: if true, drop frames if we can't keep up
+drop_frames: true
+
+# Number of worker threads for inference
+worker_threads: 1
+
+# Rate at which to publish annotated debug images (Hz)
+annotated_rate_hz: 5.0
