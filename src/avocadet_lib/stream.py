@@ -115,12 +115,13 @@ class LivestreamProcessor:
         self,
         source: Union[int, str] = 0,
         model_path: Optional[str] = None,
-        confidence_threshold: float = 0.5,
+        confidence_threshold: Optional[float] = None,
         process_every_n_frames: int = 1,
         on_frame_callback: Optional[Callable[[FrameResult], None]] = None,
-        backend: str = "ultralytics",
+        backend: Optional[str] = None,
         width: int = 640,
         height: int = 480,
+        config: Optional[dict] = None,
     ):
         """
         Initialize the livestream processor.
@@ -132,18 +133,31 @@ class LivestreamProcessor:
             process_every_n_frames: Process every Nth frame for performance.
             on_frame_callback: Callback function for each processed frame.
             backend: Inference backend ('ultralytics', 'onnx', 'tensorrt').
+            config: Full configuration dictionary.
         """
         self.source = source
         self.process_every_n_frames = process_every_n_frames
         self.on_frame_callback = on_frame_callback
         self.width = width
         self.height = height
+        self.config = config or {}
 
+        # Resolve config logic: Argument > Config > Default
+        det_config = self.config.get("detector", {})
+        
+        final_model_path = model_path or det_config.get("model_path")
+        final_conf = confidence_threshold if confidence_threshold is not None else det_config.get("confidence_threshold", 0.5)
+        final_backend = backend or det_config.get("backend", "ultralytics")
+        
         # Initialize components
+        from .geometry import GeometryManager
+        self.geometry_manager = GeometryManager(self.config.get("geometry", {}))
+        
         self.detector = UnifiedDetector(
-            model_path=model_path,
-            confidence_threshold=confidence_threshold,
-            backend=backend,
+            model_path=final_model_path,
+            confidence_threshold=final_conf,
+            backend=final_backend,
+            config=self.config
         )
         self.color_analyzer = ColorAnalyzer()
         self.size_estimator = SizeEstimator()
@@ -202,6 +216,12 @@ class LivestreamProcessor:
         if self._last_frame_time > 0:
             self.fps = 1.0 / (current_time - self._last_frame_time)
         self._last_frame_time = current_time
+
+        # Rectify if enabled
+        # Note: GeometryManager handles checking is_enabled internally for performant no-op
+        # but we can also check here.
+        # However, we must ensure we are using the geometry manager we init'd.
+        frame = self.geometry_manager.rectify(frame)
 
         # Detect avocados
         detections = self.detector.detect(frame)
